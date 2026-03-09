@@ -63,11 +63,11 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 response_cache = {}
 
 
-# Generation logic: Uses gemini-3-flash-preview exclusively
+# Generation logic: Uses gemini-2.5-flash exclusively
 def call_gemini(client, contents, config):
     try:
         return client.models.generate_content(
-            model="gemini-3-flash-preview",
+            model="gemini-2.5-flash",
             contents=contents,
             config=config,
         )
