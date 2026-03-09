@@ -63,31 +63,16 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 response_cache = {}
 
 
-# Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash, then 1.5 Flash 8b
-def call_gemini_with_fallback(client, contents, config):
-    models_to_try = [
-        "gemini-3-flash-preview",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash-8b"
-    ]
-    
-    last_error = None
-    for model_name in models_to_try:
-        try:
-            return client.models.generate_content(
-                model=model_name,
-                contents=contents,
-                config=config,
-            )
-        except Exception as e:
-            err_msg = str(e)
-            last_error = e
-            # If it's not a "Not Found" or "Quota" error, don't brother trying next model
-            if not any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
-                raise e
-            continue
-            
-    raise last_error
+# Generation logic: Uses gemini-3-flash-preview exclusively
+def call_gemini(client, contents, config):
+    try:
+        return client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=contents,
+            config=config,
+        )
+    except Exception as e:
+        raise e
 
 # Retry logic: Exponential backoff for transient failures
 @retry(
@@ -97,7 +82,7 @@ def call_gemini_with_fallback(client, contents, config):
     reraise=True
 )
 def generate_with_retry(client, contents, config):
-    return call_gemini_with_fallback(client, contents, config)
+    return call_gemini(client, contents, config)
 
 @app.route("/")
 def index():
