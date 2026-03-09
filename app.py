@@ -106,7 +106,7 @@ def process():
 
     try:
         response = request_client.models.generate_content(
-            model="gemini-2.0-flash-lite",
+            model="gemini-1.5-flash",
             contents=contents,
             config=GENERATE_CONFIG,
         )
@@ -152,8 +152,12 @@ def test_api():
         
     try:
         test_client = genai.Client(api_key=api_key)
-        # Simple list models call to verify the key works
-        test_client.models.list(config={"page_size": 1})
+        # Simply list models is enough to check key validity, but let's test a generation
+        test_client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents="test",
+            config={"max_output_tokens": 1}
+        )
         return jsonify({"success": True, "message": "API Key is valid and working!"})
     except Exception as e:
         err_msg = str(e)

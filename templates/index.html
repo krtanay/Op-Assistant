@@ -595,7 +595,15 @@
                 <!-- Error Box -->
                 <div class="error-box" id="errorBox">
                     <span class="material-icons-round">error_outline</span>
-                    <span id="errorText">Something went wrong. Please try again.</span>
+                    <div style="flex:1;">
+                        <span id="errorText">Something went wrong. Please try again.</span>
+                        <div id="quotaInstructions"
+                            style="display:none; margin-top:6px; font-size:11px; opacity:0.8; line-height:1.4;">
+                            💡 <strong>Tip:</strong> Create a <a href="https://console.cloud.google.com/projectcreate"
+                                target="_blank" style="color:inherit; text-decoration:underline;">new Google Cloud
+                                Project</a> if you keep hitting limits on this key.
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -768,7 +776,11 @@
         function showError(msg) {
             const box = document.getElementById('errorBox');
             const text = document.getElementById('errorText');
+            const tip = document.getElementById('quotaInstructions');
+
             text.textContent = msg;
+            tip.style.display = (msg.includes('Quota') || msg.includes('429')) ? 'block' : 'none';
+
             // FIX #4: use .show class so fadeIn animation actually triggers
             box.classList.remove('show');
             void box.offsetWidth; // reflow to restart animation
@@ -776,6 +788,7 @@
         }
         function hideError() {
             document.getElementById('errorBox').classList.remove('show');
+            document.getElementById('quotaInstructions').style.display = 'none';
         }
 
         /* ── Textarea shake on empty submit ── */
