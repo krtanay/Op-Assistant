@@ -63,18 +63,34 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 response_cache = {}
 
 
-# Generation logic: Uses gemini-2.5-flash exclusively
-def call_gemini(client, contents, config):
-    try:
-        return client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
-            config=config,
-        )
-    except Exception as e:
-        raise e
+# Fallback-aware generation: Tries multiple Flash models to find one supported by the API key
+def call_gemini_with_fallback(client, contents, config):
+    # These names are verified via API audit
+    models_to_try = [
+        "gemini-flash-latest",
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash"
+    ]
+    
+    last_error = None
+    for model_name in models_to_try:
+        try:
+            return client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=config,
+            )
+        except Exception as e:
+            err_msg = str(e)
+            last_error = e
+            # If it's not a "Not Found" or "Quota" error, it's a real issue (like prompt blocked)
+            if not any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
+                raise e
+            continue
+            
+    raise last_error
 
-# Retry logic: Exponential backoff for transient failures
+# Retry logic: Exponential backoff for transient failures (like 429)
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=1, max=10),
@@ -82,7 +98,7 @@ def call_gemini(client, contents, config):
     reraise=True
 )
 def generate_with_retry(client, contents, config):
-    return call_gemini(client, contents, config)
+    return call_gemini_with_fallback(client, contents, config)
 
 @app.route("/")
 def index():
@@ -114,10 +130,9 @@ def process():
         }), 401
 
     try:
-        # Force v1 API to avoid beta version issues
+        # Use default SDK behavior for versioning, but fallback across models
         request_client = genai.Client(
-            api_key=api_key_to_use,
-            http_options={'api_version': 'v1'}
+            api_key=api_key_to_use
         )
         
         # Build conversation: few-shot examples + actual user input
@@ -171,10 +186,8 @@ def test_api():
         return jsonify({"error": "No API key provided"}), 400
         
     try:
-        # Force v1 API to avoid beta version issues
         test_client = genai.Client(
-            api_key=api_key,
-            http_options={'api_version': 'v1'}
+            api_key=api_key
         )
         # Verify the key works with our robust generation logic
         generate_with_retry(
