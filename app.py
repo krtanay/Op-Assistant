@@ -53,7 +53,7 @@ FEW_SHOT_EXAMPLES = [
 GENERATE_CONFIG = types.GenerateContentConfig(
     temperature=0.5,
     top_p=0.8,
-    max_output_tokens=150,
+    max_output_tokens=1024,
     response_mime_type="application/json",
     system_instruction=[
         types.Part.from_text(text=SYSTEM_INSTRUCTION)
@@ -62,33 +62,26 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 
 response_cache = {}
 
+# Preferred model pinned for current API key
+MODEL_NAME = "gemini-2.5-flash"
 
-# Fallback-aware generation: Tries multiple Flash models to find one supported by the API key
-def call_gemini_with_fallback(client, contents, config):
-    # These names are verified via API audit
-    models_to_try = [
-        "gemini-flash-latest",
-        "gemini-2.0-flash-lite",
-        "gemini-2.5-flash"
-    ]
-    
-    last_error = None
-    for model_name in models_to_try:
-        try:
-            return client.models.generate_content(
-                model=model_name,
-                contents=contents,
-                config=config,
+def call_gemini(client, user_input, config):
+    try:
+        # Build conversation: few-shot examples + actual user input
+        contents = FEW_SHOT_EXAMPLES + [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_input)],
             )
-        except Exception as e:
-            err_msg = str(e)
-            last_error = e
-            # If it's not a "Not Found" or "Quota" error, it's a real issue (like prompt blocked)
-            if not any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
-                raise e
-            continue
-            
-    raise last_error
+        ]
+        
+        return client.models.generate_content(
+            model=MODEL_NAME,
+            contents=contents,
+            config=config,
+        )
+    except Exception as e:
+        raise e
 
 # Retry logic: Exponential backoff for transient failures (like 429)
 @retry(
@@ -97,8 +90,8 @@ def call_gemini_with_fallback(client, contents, config):
     retry=retry_if_exception_type(Exception),
     reraise=True
 )
-def generate_with_retry(client, contents, config):
-    return call_gemini_with_fallback(client, contents, config)
+def generate_with_retry(client, user_input, config):
+    return call_gemini(client, user_input, config)
 
 @app.route("/")
 def index():
@@ -113,15 +106,13 @@ def process():
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
 
-    # Cache check early (saves tokens for repeated inputs)
+    # Cache check
     if user_input in response_cache:
         return jsonify(response_cache[user_input])
 
-    # Determine which API key to use
+    # Determine API key
     is_custom_key = bool(user_api_key)
     env_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    
-    # Check if we have any key at all
     api_key_to_use = user_api_key or env_api_key
 
     if not api_key_to_use or "your_gemini_api_key" in api_key_to_use:
@@ -130,21 +121,10 @@ def process():
         }), 401
 
     try:
-        # Use default SDK behavior for versioning, but fallback across models
-        request_client = genai.Client(
-            api_key=api_key_to_use
-        )
+        request_client = genai.Client(api_key=api_key_to_use)
         
-        # Build conversation: few-shot examples + actual user input
-        contents = FEW_SHOT_EXAMPLES + [
-            types.Content(
-                role="user",
-                parts=[types.Part.from_text(text=user_input)],
-            )
-        ]
-
-        # Call with retry + fallback
-        response = generate_with_retry(request_client, contents, GENERATE_CONFIG)
+        # Call with retry
+        response = generate_with_retry(request_client, user_input, GENERATE_CONFIG)
         full_response = response.text
 
         # Strip markdown code fences if model wraps response
@@ -164,7 +144,7 @@ def process():
         return jsonify({"error": "Model returned invalid JSON. Try again."}), 500
     except Exception as e:
         err_msg = str(e)
-        key_type = "Custom API Key (from Settings)" if is_custom_key else "Server Default Key"
+        key_type = "Custom API Key" if is_custom_key else "Server Default Key"
         
         if "API_KEY_INVALID" in err_msg or "401" in err_msg:
             return jsonify({"error": f"Invalid {key_type}. Please check your Settings."}), 401
@@ -176,7 +156,6 @@ def process():
             
         return jsonify({"error": f"{key_type} error: {err_msg}"}), 500
 
-
 @app.route("/test_api", methods=["POST"])
 def test_api():
     body = request.get_json(silent=True) or {}
@@ -186,10 +165,7 @@ def test_api():
         return jsonify({"error": "No API key provided"}), 400
         
     try:
-        test_client = genai.Client(
-            api_key=api_key
-        )
-        # Verify the key works with our robust generation logic
+        test_client = genai.Client(api_key=api_key)
         generate_with_retry(
             test_client, 
             "test connection", 
@@ -203,7 +179,6 @@ def test_api():
         if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
             return jsonify({"error": "This API Key has exceeded its quota (429)."}), 429
         return jsonify({"error": f"Connection failed: {err_msg}"}), 500
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
