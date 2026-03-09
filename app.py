@@ -66,18 +66,18 @@ response_cache = {}
 # Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash if 429 occurs
 def call_gemini_with_fallback(client, contents, config):
     try:
-        # Strategy A: Newest/Fastest/Cheapest
+        # Strategy A: Stable and available in most projects
         return client.models.generate_content(
-            model="gemini-2.0-flash-lite",
+            model="gemini-1.5-flash",
             contents=contents,
             config=config,
         )
     except Exception as e:
         err_msg = str(e)
-        if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
-            # Strategy B: Fallback to stable 1.5 Flash (often separate quota)
+        # Handle both "Not Found" (404) and "Quota Exceeded" (429) by switching models
+        if any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
             return client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-2.0-flash-lite",
                 contents=contents,
                 config=config,
             )
@@ -177,11 +177,11 @@ def test_api():
         
     try:
         test_client = genai.Client(api_key=api_key)
-        # Simply list models is enough to check key validity, but let's test a generation
-        test_client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents="test",
-            config={"max_output_tokens": 1}
+        # Verify the key works with our robust generation logic
+        generate_with_retry(
+            test_client, 
+            "test connection", 
+            types.GenerateContentConfig(max_output_tokens=1)
         )
         return jsonify({"success": True, "message": "API Key is valid and working!"})
     except Exception as e:
