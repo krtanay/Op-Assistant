@@ -6,6 +6,8 @@
 
 Built with **Flask** + **Google Gemini 2.0 Flash Lite** | Designed for the Because Market ops team
 
+**[🚀 Live Demo — Deploy on Railway](https://op-assistant-production.up.railway.app)**
+
 ![Python](https://img.shields.io/badge/Python-3.11+-blue?style=flat-square&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-3.0+-black?style=flat-square&logo=flask)
 ![Gemini](https://img.shields.io/badge/Google_Gemini-2.0_Flash_Lite-orange?style=flat-square&logo=google)
