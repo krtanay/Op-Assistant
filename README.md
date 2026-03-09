@@ -4,6 +4,9 @@ A premium Internal Operations Tool designed for **Because Market**. This AI-powe
 
 ![App Demo](screenshots/app_demo.png)
 
+## 🌐 Live Demo
+Access the production app here: **[op-assistant-production.up.railway.app](https://op-assistant-production.up.railway.app/)**
+
 ## ✨ Features
 
 - **Instant Analysis**: Converts unstructured text into structured JSON with priority, summary, and action steps.
