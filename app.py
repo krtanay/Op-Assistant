@@ -63,25 +63,31 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 response_cache = {}
 
 
-# Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash if 429 occurs
+# Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash, then 1.5 Flash 8b
 def call_gemini_with_fallback(client, contents, config):
-    try:
-        # Strategy A: Stable and available in most projects
-        return client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=contents,
-            config=config,
-        )
-    except Exception as e:
-        err_msg = str(e)
-        # Handle both "Not Found" (404) and "Quota Exceeded" (429) by switching models
-        if any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
+    models_to_try = [
+        "gemini-2.0-flash-lite",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-8b"
+    ]
+    
+    last_error = None
+    for model_name in models_to_try:
+        try:
             return client.models.generate_content(
-                model="gemini-2.0-flash-lite",
+                model=model_name,
                 contents=contents,
                 config=config,
             )
-        raise e
+        except Exception as e:
+            err_msg = str(e)
+            last_error = e
+            # If it's not a "Not Found" or "Quota" error, don't brother trying next model
+            if not any(x in err_msg for x in ["404", "not found", "429", "RESOURCE_EXHAUSTED"]):
+                raise e
+            continue
+            
+    raise last_error
 
 # Retry logic: Exponential backoff for transient failures
 @retry(
@@ -123,7 +129,11 @@ def process():
         }), 401
 
     try:
-        request_client = genai.Client(api_key=api_key_to_use)
+        # Force v1 API to avoid beta version issues
+        request_client = genai.Client(
+            api_key=api_key_to_use,
+            http_options={'api_version': 'v1'}
+        )
         
         # Build conversation: few-shot examples + actual user input
         contents = FEW_SHOT_EXAMPLES + [
@@ -176,7 +186,11 @@ def test_api():
         return jsonify({"error": "No API key provided"}), 400
         
     try:
-        test_client = genai.Client(api_key=api_key)
+        # Force v1 API to avoid beta version issues
+        test_client = genai.Client(
+            api_key=api_key,
+            http_options={'api_version': 'v1'}
+        )
         # Verify the key works with our robust generation logic
         generate_with_retry(
             test_client, 
