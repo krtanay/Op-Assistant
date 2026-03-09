@@ -254,6 +254,11 @@
             }
         }
 
+        .spin {
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
         /* ─── Error Box ─── */
         /* BUG FIX #4 — error-box now uses .show class so fadeIn actually fires */
         .error-box {
@@ -1018,17 +1023,53 @@
             }
         }
 
-        function saveSettings() {
+        async function saveSettings() {
             const key = document.getElementById('apiKeyInput').value.trim();
-            localStorage.setItem('gemini_api_key', key);
-
-            // Hide/show banner based on whether key is now set
-            const banner = document.getElementById('apiKeyBanner');
-            banner.style.display = key ? 'none' : 'flex';
-
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
             const msg = document.getElementById('saveSuccess');
-            msg.style.display = 'flex';
-            setTimeout(() => msg.style.display = 'none', 3000);
+
+            if (!key) {
+                localStorage.setItem('gemini_api_key', '');
+                document.getElementById('apiKeyBanner').style.display = 'flex';
+                msg.innerHTML = '<span class="material-icons-round" style="font-size: 14px;">check_circle</span> Key cleared';
+                msg.style.display = 'flex';
+                msg.style.color = 'var(--text-secondary)';
+                setTimeout(() => msg.style.display = 'none', 3000);
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="material-icons-round spin" style="font-size:16px;">sync</span> Validating...';
+
+            try {
+                const res = await fetch('/test_api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: key })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('gemini_api_key', key);
+                    document.getElementById('apiKeyBanner').style.display = 'none';
+                    msg.innerHTML = '<span class="material-icons-round" style="font-size: 14px;">check_circle</span> Key validated & saved!';
+                    msg.style.color = 'var(--priority-low)';
+                    msg.style.display = 'flex';
+                } else {
+                    msg.innerHTML = `<span class="material-icons-round" style="font-size: 14px;">error_outline</span> ${data.error || 'Validation failed'}`;
+                    msg.style.color = 'var(--priority-high)';
+                    msg.style.display = 'flex';
+                }
+            } catch (err) {
+                msg.innerHTML = '<span class="material-icons-round" style="font-size: 14px;">error_outline</span> Network error';
+                msg.style.color = 'var(--priority-high)';
+                msg.style.display = 'flex';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                setTimeout(() => msg.style.display = 'none', 5000);
+            }
         }
 
         function toggleKeyVisibility() {

@@ -76,14 +76,15 @@ def process():
         return jsonify({"error": "No input provided"}), 400
 
     # Determine which API key to use
-    # Priority: user-provided key in request > server environment variable
-    load_dotenv(override=True)
+    is_custom_key = bool(user_api_key)
     env_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    
+    # Check if we have any key at all
     api_key_to_use = user_api_key or env_api_key
 
-    if not api_key_to_use:
+    if not api_key_to_use or "your_gemini_api_key" in api_key_to_use:
         return jsonify({
-            "error": "No API key configured. Please go to Settings and enter your Gemini API key."
+            "error": "No valid API key configured. Please go to Settings and enter your own Gemini API key."
         }), 401
 
     try:
@@ -128,11 +129,39 @@ def process():
         return jsonify({"error": "Model returned invalid JSON. Try again."}), 500
     except Exception as e:
         err_msg = str(e)
+        key_type = "Custom API Key (from Settings)" if is_custom_key else "Server Default Key"
+        
         if "API_KEY_INVALID" in err_msg or "401" in err_msg:
-            return jsonify({"error": "Invalid API Key. Please check your Settings."}), 401
+            return jsonify({"error": f"Invalid {key_type}. Please check your Settings."}), 401
+        
         if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
-            return jsonify({"error": "API Quota exceeded. Please wait a minute or use a different key."}), 429
-        return jsonify({"error": err_msg}), 500
+            return jsonify({
+                "error": f"Quota Exceeded for {key_type}. Please wait a minute or use a different key."
+            }), 429
+            
+        return jsonify({"error": f"{key_type} error: {err_msg}"}), 500
+
+
+@app.route("/test_api", methods=["POST"])
+def test_api():
+    body = request.get_json(silent=True) or {}
+    api_key = body.get("api_key", "").strip()
+    
+    if not api_key:
+        return jsonify({"error": "No API key provided"}), 400
+        
+    try:
+        test_client = genai.Client(api_key=api_key)
+        # Simple list models call to verify the key works
+        test_client.models.list(config={"page_size": 1})
+        return jsonify({"success": True, "message": "API Key is valid and working!"})
+    except Exception as e:
+        err_msg = str(e)
+        if "API_KEY_INVALID" in err_msg:
+            return jsonify({"error": "Invalid API Key format or key not found."}), 401
+        if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
+            return jsonify({"error": "This API Key has exceeded its quota (429)."}), 429
+        return jsonify({"error": f"Connection failed: {err_msg}"}), 500
 
 
 if __name__ == "__main__":
