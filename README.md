@@ -12,7 +12,8 @@ Access the production app here: **[op-assistant-production.up.railway.app](https
 - **Instant Analysis**: Converts unstructured text into structured JSON with priority, summary, and action steps.
 - **Priority Detection**: Automatically flags issues as High, Medium, or Low with dynamic color-coded UI.
 - **Smart History**: Local persistence of previous analyses for quick reference.
-- **Premium UI/UX**: Designed with Stitch, featuring smooth animations, glassmorphism, and a sleek dark mode.
+- **Premium UI/UX**: Designed for efficiency with smooth animations, glassmorphism, and interactive feedback.
+- **Sleek Dark Mode**: A premium, eye-friendly dark interface for low-light operational environments.
 - **Secure Configuration**: User-provided API keys are stored safely in local storage (never on the server).
 - **Mobile Responsive**: Fully optimized for both desktop and mobile operations.
 
@@ -64,8 +65,9 @@ Access the production app here: **[op-assistant-production.up.railway.app](https
 ### Analysis View
 ![Analysis View](screenshots/app_demo.png)
 
-### Request History
+### Request History & Dark Mode
 ![History View](screenshots/history_view.png)
+![Dark Mode](screenshots/dark_mode.png)
 
 ---
 *Built for Because Market Operations Efficiency.*
