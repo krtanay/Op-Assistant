@@ -66,8 +66,8 @@ response_cache = {}
 # Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash, then 1.5 Flash 8b
 def call_gemini_with_fallback(client, contents, config):
     models_to_try = [
+        "gemini-3-flash-preview",
         "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
         "gemini-1.5-flash-8b"
     ]
     
