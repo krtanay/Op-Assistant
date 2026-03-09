@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Because Market — Ops Copilot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <style>
+        /* ─── Reset & Base ─── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #f5f4f2;
+            --surface: #ffffff;
+            --surface2: #f9f8f6;
+            --border: #e8e5e0;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b6563;
+            --text-muted: #9e9a97;
+            --accent: #e8552c;
+            --accent-light: #fdf0ec;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow: 0 1px 4px rgba(0, 0, 0, .06), 0 4px 16px rgba(0, 0, 0, .06);
+            --priority-high: #dc2626;
+            --priority-medium: #d97706;
+            --priority-low: #16a34a;
+        }
+
+        [data-theme="dark"] {
+            --bg: #121110;
+            --surface: #1c1b1a;
+            --surface2: #262524;
+            --border: #333130;
+            --text-primary: #f5f4f2;
+            --text-secondary: #bcbab8;
+            --text-muted: #8c8a88;
+            --accent-light: #2d1a15;
+            --shadow: 0 4px 20px rgba(0, 0, 0, .4);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Top Nav ─── */
+        .nav {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 20px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+
+        .nav-brand .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -.2px;
+        }
+
+        .nav-brand .brand-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .nav-icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: background .15s;
+        }
+
+        .nav-icon-btn:hover {
+            background: var(--bg);
+        }
+
+        .nav-icon-btn .material-icons-round {
+            font-size: 20px;
+        }
+
+        /* ─── Page ─── */
+        .page {
+            flex: 1;
+            padding: 20px 16px 100px;
+            max-width: 430px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ─── Input Card ─── */
+        .input-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .input-card-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 10px;
+        }
+
+        .input-card textarea {
+            width: 100%;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface2);
+            padding: 12px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            color: var(--text-primary);
+            resize: none;
+            line-height: 1.55;
+            outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            min-height: 110px;
+        }
+
+        .input-card textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-card textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(232, 85, 44, .12);
+        }
+
+        /* BUG FIX #1 — Textarea shake + red border on empty submit */
+        .input-card textarea.input-error {
+            border-color: var(--priority-high) !important;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, .15) !important;
+            animation: shakeInput .4s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shakeInput {
+
+            10%,
+            90% {
+                transform: translateX(-2px);
+            }
+
+            20%,
+            80% {
+                transform: translateX(4px);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translateX(-4px);
+            }
+
+            40%,
+            60% {
+                transform: translateX(4px);
+            }
+        }
+
+        /* ─── Submit Button ─── */
+        .btn-analyze {
+            width: 100%;
+            margin-top: 14px;
+            padding: 13px 20px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: background .18s, transform .12s, box-shadow .18s;
+            box-shadow: 0 2px 8px rgba(232, 85, 44, .30);
+        }
+
+        .btn-analyze:hover:not(:disabled) {
+            background: #d44a22;
+            box-shadow: 0 4px 16px rgba(232, 85, 44, .38);
+            transform: translateY(-1px);
+        }
+
+        .btn-analyze:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-analyze:disabled {
+            opacity: .75;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-analyze .material-icons-round {
+            font-size: 18px;
+        }
+
+        /* ─── Spinner ─── */
+        .spinner {
+            width: 17px;
+            height: 17px;
+            border: 2px solid rgba(255, 255, 255, .35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ─── Error Box ─── */
+        /* BUG FIX #4 — error-box now uses .show class so fadeIn actually fires */
+        .error-box {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: var(--radius-sm);
+            padding: 11px 14px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #b91c1c;
+        }
+
+        .error-box.show {
+            display: flex;
+            animation: fadeIn .25s ease;
+        }
+
+        .error-box .material-icons-round {
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        /* ─── Results Card ─── */
+        /* BUG FIX #2 — animation moved to .results-card.visible so it re-triggers each time */
+        .results-card {
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border-top: 4px solid transparent;
+            overflow: hidden;
+            display: none;
+        }
+
+        .results-card.visible {
+            display: block;
+            animation: slideUp .38s cubic-bezier(.22, .68, 0, 1.2) both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* ─── Results Header ─── */
+        .results-header {
+            padding: 16px 20px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .results-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .results-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+
+        .results-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* ─── Priority Badge ─── */
+        .priority-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 999px;
+            letter-spacing: .1px;
+            white-space: nowrap;
+        }
+
+        .priority-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .priority-badge.high {
+            background: #fee2e2;
+            color: var(--priority-high);
+        }
+
+        .priority-badge.medium {
+            background: #fef3c7;
+            color: var(--priority-medium);
+        }
+
+        .priority-badge.low {
+            background: #dcfce7;
+            color: var(--priority-low);
+        }
+
+        /* BUG FIX #3 — Badge pulse animation on appear */
+        .priority-badge.pulse {
+            animation: badgePulse .5s ease-out both;
+        }
+
+        @keyframes badgePulse {
+            0% {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.12);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* ─── Results Body ─── */
+        .results-body {
+            padding: 18px 20px;
+        }
+
+        .summary-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        /* ─── Meta Row ─── */
+        .meta-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .meta-chip {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .meta-chip-label {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .meta-chip-value {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .meta-chip-value .material-icons-round {
+            font-size: 15px;
+            color: var(--text-secondary);
+        }
+
+        /* ─── Action Steps ─── */
+        .steps-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            margin-bottom: 10px;
+        }
+
+        .steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 11px 13px;
+            /* BUG FIX — fill-mode both ensures delay works and start state holds */
+            animation: fadeIn .35s ease both;
+        }
+
+        .step-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-light);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding-top: 1px;
+        }
+
+        /* ─── Bottom Nav ─── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 8px;
+            z-index: 100;
+        }
+
+        .nav-tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            height: 100%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-family: 'Inter', sans-serif;
+            font-size: 10px;
+            font-weight: 500;
+            transition: color .15s;
+        }
+
+        .nav-tab .material-icons-round {
+            font-size: 22px;
+        }
+
+        .nav-tab.active {
+            color: var(--accent);
+        }
+
+        .tab-view {
+            display: none;
+        }
+
+        .tab-view.active {
+            display: block;
+            animation: fadeIn .3s ease;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Top Nav -->
+    <nav class="nav">
+        <div class="nav-brand">
+            <span class="brand-title">⚡ Ops Copilot</span>
+            <span class="brand-sub">Because Market · Internal Tool</span>
+        </div>
+        <button class="nav-icon-btn" id="headerNotifyBtn" aria-label="Notifications" onclick="switchTab('Settings')">
+            <span class="material-icons-round" id="headerNotifyIcon">notifications_none</span>
+        </button>
+    </nav>
+
+    <!-- Page -->
+    <main class="page">
+
+        <!-- Copilot View -->
+        <div id="viewCopilot" class="tab-view active">
+            <!-- Input Card -->
+            <div class="input-card">
+                <div class="input-card-label">New Request</div>
+                <textarea id="requestInput" placeholder="Paste a messy ticket, complaint, or internal request here…"
+                    rows="5"></textarea>
+                <button class="btn-analyze" id="analyzeBtn" onclick="handleAnalyze()">
+                    <span class="material-icons-round" id="btnIcon">auto_awesome</span>
+                    <div class="spinner" id="btnSpinner"></div>
+                    <span id="btnLabel">Analyze with Copilot</span>
+                </button>
+                <!-- Error Box -->
+                <div class="error-box" id="errorBox">
+                    <span class="material-icons-round">error_outline</span>
+                    <span id="errorText">Something went wrong. Please try again.</span>
+                </div>
+            </div>
+
+            <!-- Results Card -->
+            <div class="results-card" id="resultsCard">
+                <div class="results-header">
+                    <div class="results-header-left">
+                        <span class="results-label">Analysis Results</span>
+                        <span class="results-title" id="resSummaryTitle">—</span>
+                    </div>
+                    <span class="priority-badge" id="priorityBadge">—</span>
+                </div>
+                <div class="results-body">
+                    <p class="summary-text" id="resSummaryBody">—</p>
+                    <div class="meta-row">
+                        <div class="meta-chip">
+                            <span class="meta-chip-label">Est. Time</span>
+                            <span class="meta-chip-value">
+                                <span class="material-icons-round">schedule</span>
+                                <span id="resTime">—</span>
+                            </span>
+                        </div>
+                        <div class="meta-chip">
+                            <span class="meta-chip-label">Department</span>
+                            <span class="meta-chip-value">
+                                <span class="material-icons-round">corporate_fare</span>
+                                <span id="resDept">—</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="steps-label">Action Steps</div>
+                    <div class="steps-list" id="stepsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History View -->
+        <div id="viewHistory" class="tab-view">
+            <div class="input-card">
+                <div class="input-card-label">Request History</div>
+                <div id="historyEmpty" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+                    <span class="material-icons-round"
+                        style="font-size: 48px; margin-bottom: 12px; display: block;">history</span>
+                    <p style="font-size: 14px;">No history yet. Analyze a request to see it here.</p>
+                </div>
+                <div id="historyList" class="steps-list"></div>
+            </div>
+        </div>
+
+        <!-- Settings View -->
+        <div id="viewSettings" class="tab-view">
+            <div class="input-card">
+                <div class="input-card-label">Gemini API Configuration</div>
+                <div style="margin-top: 10px;">
+                    <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px;">Gemini
+                        API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIza..."
+                        style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface2); font-family: monospace; font-size: 13px; outline: none; transition: border-color .2s;">
+                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.4;">
+                        If provided, this key will be used for all AI requests. Leave blank to use server defaults.
+                    </p>
+                    <button class="btn-analyze" style="margin-top: 12px; padding: 10px; font-size: 13px;"
+                        onclick="saveSettings()">
+                        Save Settings
+                    </button>
+                    <div id="saveSuccess"
+                        style="display: none; color: var(--priority-low); font-size: 11px; margin-top: 8px; align-items: center; gap: 4px;">
+                        <span class="material-icons-round" style="font-size: 14px;">check_circle</span> Settings saved
+                        successfully
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-card">
+                <div class="input-card-label">General Settings</div>
+                <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
+                    <!-- Dark Mode Toggle -->
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 14px; color: var(--text-primary);">Dark Mode</span>
+                        <button id="darkModeBtn" onclick="toggleDarkMode()" aria-label="Toggle Dark Mode"
+                            style="width: 42px; height: 22px; background: var(--border); border-radius: 20px; position: relative; cursor: pointer; transition: background .3s; border: none; padding: 0; outline: none;">
+                            <div id="darkModeKnob"
+                                style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; left: 2px; top: 2px; transition: transform .3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                            </div>
+                        </button>
+                    </div>
+                    <!-- Notifications Toggle -->
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 14px; color: var(--text-primary);">Notifications</span>
+                        <button id="notifyBtn" onclick="toggleNotifications()" aria-label="Toggle Notifications"
+                            style="width: 42px; height: 22px; background: var(--accent); border-radius: 20px; position: relative; cursor: pointer; transition: background .3s; border: none; padding: 0; outline: none;">
+                            <div id="notifyKnob"
+                                style="width: 18px; height: 18px; background: white; border-radius: 50%; position: absolute; left: 2px; top: 2px; transition: transform .3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);">
+                            </div>
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 14px; color: var(--text-primary);">AI Model</span>
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Gemini 2.0
+                            Flash</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-card">
+                <div class="input-card-label">About</div>
+                <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-top: 10px;">
+                    Because Market Ops Copilot v1.0.1<br>
+                    Internal tool for operations team efficiency.
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <button class="nav-tab active" id="tabCopilot" onclick="switchTab('Copilot')">
+            <span class="material-icons-round">auto_awesome</span>
+            Copilot
+        </button>
+        <button class="nav-tab" id="tabHistory" onclick="switchTab('History')">
+            <span class="material-icons-round">history</span>
+            History
+        </button>
+        <button class="nav-tab" id="tabSettings" onclick="switchTab('Settings')">
+            <span class="material-icons-round">settings</span>
+            Settings
+        </button>
+    </nav>
+
+    <!-- ─── JS Fetch Logic ─── -->
+    <script>
+        const PRIORITY_CONFIG = {
+            High: { cls: 'high', border: '#dc2626' },
+            Medium: { cls: 'medium', border: '#d97706' },
+            Low: { cls: 'low', border: '#16a34a' },
+        };
+
+        /* ── Loading state ── */
+        function setLoading(isLoading) {
+            const btn = document.getElementById('analyzeBtn');
+            const icon = document.getElementById('btnIcon');
+            const spinner = document.getElementById('btnSpinner');
+            const label = document.getElementById('btnLabel');
+            btn.disabled = isLoading;
+            icon.style.display = isLoading ? 'none' : 'block';
+            spinner.style.display = isLoading ? 'block' : 'none';
+            label.textContent = isLoading ? 'Analyzing…' : 'Analyze with Copilot';
+        }
+
+        /* ── Error helpers ── */
+        function showError(msg) {
+            const box = document.getElementById('errorBox');
+            const text = document.getElementById('errorText');
+            text.textContent = msg;
+            // FIX #4: use .show class so fadeIn animation actually triggers
+            box.classList.remove('show');
+            void box.offsetWidth; // reflow to restart animation
+            box.classList.add('show');
+        }
+        function hideError() {
+            document.getElementById('errorBox').classList.remove('show');
+        }
+
+        /* ── Textarea shake on empty submit ── */
+        function shakeTextarea() {
+            const ta = document.getElementById('requestInput');
+            ta.classList.remove('input-error');
+            void ta.offsetWidth; // reflow
+            ta.classList.add('input-error');
+            ta.addEventListener('animationend', () => {
+                ta.classList.remove('input-error');
+            }, { once: true });
+        }
+
+        /* ── Populate results ── */
+        function populateResults(data) {
+            const card = document.getElementById('resultsCard');
+            const badge = document.getElementById('priorityBadge');
+            const config = PRIORITY_CONFIG[data.priority] || PRIORITY_CONFIG['Medium'];
+
+            // FIX #2: remove .visible first, force reflow, re-add → animation restarts
+            card.classList.remove('visible');
+            void card.offsetWidth;
+
+            // Priority badge
+            badge.className = `priority-badge ${config.cls}`;
+            badge.textContent = data.priority;
+
+            // Card top-border color
+            card.style.borderTopColor = config.border;
+
+            // Header & body summary
+            document.getElementById('resSummaryTitle').textContent = data.priority + ' Priority';
+            document.getElementById('resSummaryBody').textContent = data.summary;
+
+            // Meta chips
+            document.getElementById('resTime').textContent = data.estimated_time;
+            document.getElementById('resDept').textContent = data.department;
+
+            // Action steps with staggered fade-in
+            const list = document.getElementById('stepsList');
+            list.innerHTML = '';
+            (data.action_steps || []).forEach((step, i) => {
+                const item = document.createElement('div');
+                item.className = 'step-item';
+                item.style.animationDelay = `${180 + i * 100}ms`; // offset after card appears
+                item.innerHTML = `
+          <div class="step-num">${i + 1}</div>
+          <div class="step-text">${step}</div>
+        `;
+                list.appendChild(item);
+            });
+
+            // Show card (animation re-triggers due to FIX #2)
+            card.classList.add('visible');
+
+            // FIX #3: badge pulse — remove and re-add after card is shown
+            badge.classList.remove('pulse');
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => badge.classList.add('pulse'));
+            });
+
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        /* ── Main handler ── */
+        async function handleAnalyze() {
+            const input = document.getElementById('requestInput').value.trim();
+
+            if (!input) {
+                shakeTextarea(); // FIX #1
+                showError('Please enter a request before analyzing.');
+                return;
+            }
+
+            hideError();
+            setLoading(true);
+
+            try {
+                const apiKey = localStorage.getItem('gemini_api_key') || '';
+                const res = await fetch('/process', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: input,
+                        api_key: apiKey
+                    }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    if (res.status === 429) {
+                        showError("⚠️ Quota Exceeded: Please wait a minute before trying again or upgrade your Gemini plan.");
+                    } else {
+                        throw new Error(data.error || `Server error (${res.status})`);
+                    }
+                    return;
+                }
+
+                populateResults(data);
+                saveToHistory(input, data); // Save to history
+
+            } catch (err) {
+                showError(err.message || 'Network error — is the server running?');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /* ── Keyboard shortcut: Ctrl/Cmd + Enter ── */
+        document.getElementById('requestInput').addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') handleAnalyze();
+        });
+
+        /* ── Clear input-error class on user typing ── */
+        document.getElementById('requestInput').addEventListener('input', () => {
+            document.getElementById('requestInput').classList.remove('input-error');
+        });
+        /* ── Tab switching ── */
+        function switchTab(tabName) {
+            // Update tabs
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab${tabName}`).classList.add('active');
+
+            // Update views
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(`view${tabName}`).classList.add('active');
+
+            // Specific logic for History
+            if (tabName === 'History') {
+                loadHistory();
+            }
+        }
+
+        /* ── History Persistence ── */
+        let historyData = JSON.parse(localStorage.getItem('ops_history') || '[]');
+
+        function saveToHistory(text, result) {
+            const entry = {
+                timestamp: new Date().toISOString(),
+                text: text,
+                result: result
+            };
+            historyData.unshift(entry);
+            if (historyData.length > 20) historyData.pop(); // Keep last 20
+            localStorage.setItem('ops_history', JSON.stringify(historyData));
+        }
+
+        function loadHistory() {
+            const list = document.getElementById('historyList');
+            const empty = document.getElementById('historyEmpty');
+
+            if (historyData.length === 0) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            empty.style.display = 'none';
+            list.style.display = 'flex';
+            list.innerHTML = '';
+
+            historyData.forEach((entry, i) => {
+                const config = PRIORITY_CONFIG[entry.result.priority] || PRIORITY_CONFIG['Medium'];
+                const item = document.createElement('div');
+                item.className = 'step-item';
+                item.style.flexDirection = 'column';
+                item.style.gap = '6px';
+                item.style.cursor = 'pointer';
+                item.onclick = () => {
+                    document.getElementById('requestInput').value = entry.text;
+                    populateResults(entry.result);
+                    switchTab('Copilot');
+                };
+
+                const date = new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                item.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
+                        <span class="priority-badge ${config.cls}" style="font-size: 10px; padding: 2px 8px;">${entry.result.priority}</span>
+                        <span style="font-size: 10px; color: var(--text-muted);">${date}</span>
+                    </div>
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">${entry.result.summary}</div>
+                    <div style="font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                        "${entry.text}"
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        /* ── Settings Logic ── */
+        let settings = JSON.parse(localStorage.getItem('ops_settings') || '{"darkMode": false, "notifications": true}');
+
+        function loadSettings() {
+            const key = localStorage.getItem('gemini_api_key') || '';
+            document.getElementById('apiKeyInput').value = key;
+
+            // Apply Dark Mode
+            if (settings.darkMode) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                updateToggleUI('darkMode', true);
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light'); // Ensure light mode is set if not dark
+                updateToggleUI('darkMode', false);
+            }
+
+            // Apply Notifications UI
+            updateToggleUI('notifications', settings.notifications);
+        }
+
+        function toggleDarkMode() {
+            settings.darkMode = !settings.darkMode;
+            document.documentElement.setAttribute('data-theme', settings.darkMode ? 'dark' : 'light');
+            updateToggleUI('darkMode', settings.darkMode);
+            localStorage.setItem('ops_settings', JSON.stringify(settings));
+        }
+
+        function toggleNotifications() {
+            settings.notifications = !settings.notifications;
+            updateToggleUI('notifications', settings.notifications);
+            localStorage.setItem('ops_settings', JSON.stringify(settings));
+        }
+
+        function updateToggleUI(type, active) {
+            const btn = type === 'darkMode' ? document.getElementById('darkModeBtn') : document.getElementById('notifyBtn');
+            const knob = type === 'darkMode' ? document.getElementById('darkModeKnob') : document.getElementById('notifyKnob');
+
+            if (active) {
+                btn.style.background = 'var(--accent)';
+                knob.style.transform = 'translateX(20px)';
+                if (type === 'notifications') document.getElementById('headerNotifyIcon').textContent = 'notifications';
+            } else {
+                btn.style.background = 'var(--border)';
+                knob.style.transform = 'translateX(0)';
+                if (type === 'notifications') document.getElementById('headerNotifyIcon').textContent = 'notifications_off';
+            }
+        }
+
+        function saveSettings() {
+            const key = document.getElementById('apiKeyInput').value.trim();
+            localStorage.setItem('gemini_api_key', key);
+
+            const msg = document.getElementById('saveSuccess');
+            msg.style.display = 'flex';
+            setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        // Initialize
+        loadSettings();
+    </script>
+</body>
+
+</html>
