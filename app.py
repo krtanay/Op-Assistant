@@ -4,6 +4,8 @@ from flask import Flask, render_template, request, jsonify
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+import tenacity
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 load_dotenv()
 
@@ -61,10 +63,39 @@ GENERATE_CONFIG = types.GenerateContentConfig(
 response_cache = {}
 
 
+# Fallback-aware generation: Tries 2.0 Flash Lite, then 1.5 Flash if 429 occurs
+def call_gemini_with_fallback(client, contents, config):
+    try:
+        # Strategy A: Newest/Fastest/Cheapest
+        return client.models.generate_content(
+            model="gemini-2.0-flash-lite",
+            contents=contents,
+            config=config,
+        )
+    except Exception as e:
+        err_msg = str(e)
+        if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
+            # Strategy B: Fallback to stable 1.5 Flash (often separate quota)
+            return client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=contents,
+                config=config,
+            )
+        raise e
+
+# Retry logic: Exponential backoff for transient failures
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=10),
+    retry=retry_if_exception_type(Exception),
+    reraise=True
+)
+def generate_with_retry(client, contents, config):
+    return call_gemini_with_fallback(client, contents, config)
+
 @app.route("/")
 def index():
     return render_template("index.html")
-
 
 @app.route("/process", methods=["POST"])
 def process():
@@ -74,6 +105,10 @@ def process():
 
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
+
+    # Cache check early (saves tokens for repeated inputs)
+    if user_input in response_cache:
+        return jsonify(response_cache[user_input])
 
     # Determine which API key to use
     is_custom_key = bool(user_api_key)
@@ -89,27 +124,17 @@ def process():
 
     try:
         request_client = genai.Client(api_key=api_key_to_use)
-    except Exception as e:
-        return jsonify({"error": f"Invalid API Key: {str(e)}"}), 400
+        
+        # Build conversation: few-shot examples + actual user input
+        contents = FEW_SHOT_EXAMPLES + [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=user_input)],
+            )
+        ]
 
-    # Check cache (cache is per user_input, not per key)
-    if user_input in response_cache:
-        return jsonify(response_cache[user_input])
-
-    # Build conversation: few-shot examples + actual user input
-    contents = FEW_SHOT_EXAMPLES + [
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=user_input)],
-        )
-    ]
-
-    try:
-        response = request_client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=contents,
-            config=GENERATE_CONFIG,
-        )
+        # Call with retry + fallback
+        response = generate_with_retry(request_client, contents, GENERATE_CONFIG)
         full_response = response.text
 
         # Strip markdown code fences if model wraps response
