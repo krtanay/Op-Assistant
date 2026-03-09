@@ -61,15 +61,11 @@ Access the production app here: **[op-assistant-production.up.railway.app](https
 
 ## 📸 Screenshots
 
-### 🚀 Analysis Workflow
-| Analyzing a Request | Structured Output |
-| :--- | :--- |
-| ![Input View](screenshots/app_demo.png) | ![Analysis Result](screenshots/analysis_result.png) |
+### Analysis View
+![Analysis View](screenshots/app_demo.png)
 
-### 🕒 Activity & Settings
-| History Tracking | Secure Configuration |
-| :--- | :--- |
-| ![History View](screenshots/history_view.png) | ![Settings View](screenshots/settings.png) |
+### Request History
+![History View](screenshots/history_view.png)
 
 ---
 *Built for Because Market Operations Efficiency.*
