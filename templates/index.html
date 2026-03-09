@@ -642,24 +642,41 @@
 
         <!-- Settings View -->
         <div id="viewSettings" class="tab-view">
+            <!-- Required banner for deployed instances with no server key -->
+            <div id="apiKeyBanner"
+                style="display:none; background:#fff7ed; border:1px solid #fed7aa; border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 13px; color: #92400e; line-height: 1.5; align-items: flex-start; gap: 8px;">
+                <span class="material-icons-round" style="font-size:18px; flex-shrink:0; margin-top:1px;">key</span>
+                <span><strong>API Key Required</strong> — No server-side key is configured. Enter your Gemini API key
+                    below to use the app. Get a free key at <a href="https://aistudio.google.com" target="_blank"
+                        style="color:var(--accent);">aistudio.google.com</a>.</span>
+            </div>
             <div class="input-card">
                 <div class="input-card-label">Gemini API Configuration</div>
                 <div style="margin-top: 10px;">
                     <label style="font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 6px;">Gemini
                         API Key</label>
-                    <input type="password" id="apiKeyInput" placeholder="AIza..."
-                        style="width: 100%; padding: 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface2); font-family: monospace; font-size: 13px; outline: none; transition: border-color .2s;">
-                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.4;">
-                        If provided, this key will be used for all AI requests. Leave blank to use server defaults.
+                    <div style="position: relative;">
+                        <input type="password" id="apiKeyInput" placeholder="Paste your AIza... key here"
+                            style="width: 100%; padding: 10px 40px 10px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border); background: var(--surface2); font-family: monospace; font-size: 13px; outline: none; transition: border-color .2s; color: var(--text-primary);">
+                        <button onclick="toggleKeyVisibility()" title="Show/hide key"
+                            style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); display:flex; align-items:center;">
+                            <span class="material-icons-round" id="keyVisIcon" style="font-size:18px;">visibility</span>
+                        </button>
+                    </div>
+                    <p style="font-size: 10px; color: var(--text-muted); margin-top: 8px; line-height: 1.5;">
+                        🔒 Stored securely in your browser only — never sent to our servers directly.<br>
+                        Get a free key at <a href="https://aistudio.google.com" target="_blank"
+                            style="color:var(--accent);">aistudio.google.com</a>
                     </p>
                     <button class="btn-analyze" style="margin-top: 12px; padding: 10px; font-size: 13px;"
                         onclick="saveSettings()">
-                        Save Settings
+                        <span class="material-icons-round" style="font-size:16px;">save</span>
+                        Save API Key
                     </button>
                     <div id="saveSuccess"
                         style="display: none; color: var(--priority-low); font-size: 11px; margin-top: 8px; align-items: center; gap: 4px;">
-                        <span class="material-icons-round" style="font-size: 14px;">check_circle</span> Settings saved
-                        successfully
+                        <span class="material-icons-round" style="font-size: 14px;">check_circle</span> Key saved —
+                        ready to analyze!
                     </div>
                 </div>
             </div>
@@ -952,6 +969,14 @@
             const key = localStorage.getItem('gemini_api_key') || '';
             document.getElementById('apiKeyInput').value = key;
 
+            // Show banner if no key is saved (important for deployed instances)
+            const banner = document.getElementById('apiKeyBanner');
+            if (!key) {
+                banner.style.display = 'flex';
+            } else {
+                banner.style.display = 'none';
+            }
+
             // Apply Dark Mode
             if (settings.darkMode) {
                 document.documentElement.setAttribute('data-theme', 'dark');
@@ -997,9 +1022,25 @@
             const key = document.getElementById('apiKeyInput').value.trim();
             localStorage.setItem('gemini_api_key', key);
 
+            // Hide/show banner based on whether key is now set
+            const banner = document.getElementById('apiKeyBanner');
+            banner.style.display = key ? 'none' : 'flex';
+
             const msg = document.getElementById('saveSuccess');
             msg.style.display = 'flex';
             setTimeout(() => msg.style.display = 'none', 3000);
+        }
+
+        function toggleKeyVisibility() {
+            const input = document.getElementById('apiKeyInput');
+            const icon = document.getElementById('keyVisIcon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.textContent = 'visibility_off';
+            } else {
+                input.type = 'password';
+                icon.textContent = 'visibility';
+            }
         }
 
         // Initialize

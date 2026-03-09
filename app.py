@@ -9,10 +9,6 @@ load_dotenv()
 
 app = Flask(__name__)
 
-client = genai.Client(
-    api_key=os.environ.get("GEMINI_API_KEY"),
-)
-
 SYSTEM_INSTRUCTION = """You are an operations assistant for Because Market, a fast-growing e-commerce 
 startup selling health and wellness products for older adults.
 
@@ -79,18 +75,23 @@ def process():
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
 
-    # Use user-provided API key or fall back to environment variable
-    request_client = None
-    if user_api_key:
-        try:
-            request_client = genai.Client(api_key=user_api_key)
-        except Exception as e:
-            return jsonify({"error": f"Invalid API Key format: {str(e)}"}), 400
-    else:
-        # Re-initialize from environment variable to ensure updates are picked up
-        load_dotenv(override=True)
-        request_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    # Determine which API key to use
+    # Priority: user-provided key in request > server environment variable
+    load_dotenv(override=True)
+    env_api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key_to_use = user_api_key or env_api_key
 
+    if not api_key_to_use:
+        return jsonify({
+            "error": "No API key configured. Please go to Settings and enter your Gemini API key."
+        }), 401
+
+    try:
+        request_client = genai.Client(api_key=api_key_to_use)
+    except Exception as e:
+        return jsonify({"error": f"Invalid API Key: {str(e)}"}), 400
+
+    # Check cache (cache is per user_input, not per key)
     if user_input in response_cache:
         return jsonify(response_cache[user_input])
 
@@ -103,7 +104,6 @@ def process():
     ]
 
     try:
-        # Non-streaming request
         response = request_client.models.generate_content(
             model="gemini-2.0-flash-lite",
             contents=contents,
@@ -111,30 +111,30 @@ def process():
         )
         full_response = response.text
 
-        # Strip markdown code fences if model wraps response (e.g. ```json ... ```)
+        # Strip markdown code fences if model wraps response
         clean = full_response.strip()
         if clean.startswith("```"):
-            clean = clean.split("\n", 1)[-1]  # remove opening fence line
-            clean = clean.rsplit("```", 1)[0]  # remove closing fence
-        
+            clean = clean.split("\n", 1)[-1]
+            clean = clean.rsplit("```", 1)[0]
+
         result = json.loads(clean.strip())
-        
+
         # Cache the result
         response_cache[user_input] = result
-        
+
         return jsonify(result)
 
     except json.JSONDecodeError:
         return jsonify({"error": "Model returned invalid JSON. Try again."}), 500
     except Exception as e:
-        # Check for authentication errors specifically if possible
         err_msg = str(e)
         if "API_KEY_INVALID" in err_msg or "401" in err_msg:
-            return jsonify({"error": "Invalid API Key. Please check your settings."}), 401
+            return jsonify({"error": "Invalid API Key. Please check your Settings."}), 401
         if "RESOURCE_EXHAUSTED" in err_msg or "429" in err_msg:
-            return jsonify({"error": "API Quota exceeded. Please wait a minute or upgrade your plan."}), 429
+            return jsonify({"error": "API Quota exceeded. Please wait a minute or use a different key."}), 429
         return jsonify({"error": err_msg}), 500
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
