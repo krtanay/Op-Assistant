@@ -1,7 +1,7 @@
 from google import genai
 from google.genai import types
 
-api_key = "AIzaSyBAfTOG_zioIiPnX4cVcpxWINJ1znxiOUM"
+api_key = ""
 client = genai.Client(api_key=api_key)
 
 models_to_test = [
